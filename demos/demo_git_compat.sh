@@ -1,9 +1,10 @@
 #!/bin/bash
 set -euo pipefail
 . "$(dirname "$0")"/demo_helpers.sh
-parse_args "$@"
 
 new_tmp_dir
+
+init "$@"
 
 run_demo 'Clone a Git repo' '
 run_command "# Clone a Git repo:"

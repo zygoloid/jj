@@ -6,7 +6,9 @@ UPLOAD=false
 PREVIEW=false
 DEBUG=false
 FAST=false
-parse_args() {
+unset TMUX
+
+init() {
     for arg in "$@"; do
         case "$arg" in
         -h|--help)
@@ -37,6 +39,10 @@ Arguments:
             ;;
         esac
     done
+
+    tmux kill-session -t demo 2> /dev/null || true
+    tmux new-session -d -s demo "PS1='$ ' bash --norc"
+    tmux set-option -t demo status off
 }
 
 new_tmp_dir() {
@@ -60,7 +66,7 @@ proc pause {duration} {
     fi
     local expect_script="source $BASE_DIR/demo_helpers.tcl
 $fast
-spawn asciinema rec -c \"PS1='$ ' bash --norc\" --title \"$title\"
+spawn asciinema rec -c \"tmux attach-session -t demo\" --title \"$title\"
 expect_prompt
 $test_script
 quit_and_dump_asciicast_path
@@ -78,6 +84,7 @@ quit_and_dump_asciicast_path
     local asciicast_path
     asciicast_path=$(echo "$expect_script" | /usr/bin/env expect | tail -1)
     echo "$asciicast_path"
+    tmux kill-session -t demo 2> /dev/null || true
 
     if [[ "$PREVIEW" == 'true' ]]; then
         asciinema play "$asciicast_path"

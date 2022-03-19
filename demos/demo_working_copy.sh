@@ -1,11 +1,12 @@
 #!/bin/bash
 set -euo pipefail
 . "$(dirname "$0")"/demo_helpers.sh
-parse_args "$@"
 
 new_tmp_dir
 jj git clone https://github.com/octocat/Hello-World
 cd Hello-World
+
+init "$@"
 
 run_demo 'The working copy is automatically committed' '
 run_command "# We are in the octocat/Hello-World repo."

@@ -1,7 +1,6 @@
 #!/bin/bash
 set -euo pipefail
 . "$(dirname "$0")"/demo_helpers.sh
-parse_args "$@"
 
 new_tmp_dir
 jj init
@@ -14,6 +13,8 @@ jj close -m 'second'
 echo "third" > file
 jj branch third
 jj close -m 'third' 
+
+init "$@"
 
 run_demo 'Juggling conflicts' '
 run_command "# We are in a repo with three commits, all"

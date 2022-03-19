@@ -1,11 +1,12 @@
 #!/bin/bash
 set -euo pipefail
 . "$(dirname "$0")"/demo_helpers.sh
-parse_args "$@"
 
 new_tmp_dir
 jj git clone https://github.com/octocat/Hello-World
 cd Hello-World
+
+init "$@"
 
 run_demo 'Basic conflict resolution flow' '
 run_command "# We are on the master branch of the"
