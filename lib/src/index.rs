@@ -365,7 +365,7 @@ impl MutableIndex {
         );
     }
 
-    fn add_commit_data(
+    pub fn add_commit_data(
         &mut self,
         commit_id: CommitId,
         change_id: ChangeId,
@@ -495,8 +495,7 @@ impl MutableIndex {
             buf.write_u32::<LittleEndian>(pos.0).unwrap();
         }
 
-        buf[parent_overflow_offset..parent_overflow_offset + 4]
-            .as_mut()
+        (&mut buf[parent_overflow_offset..parent_overflow_offset + 4])
             .write_u32::<LittleEndian>(parent_overflow.len() as u32)
             .unwrap();
         for parent_pos in parent_overflow {

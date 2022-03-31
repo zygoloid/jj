@@ -18,8 +18,9 @@ use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
 use thiserror::Error;
+use crate::backend::{ChangeId, CommitId};
 
-use crate::op_store::WorkspaceId;
+use crate::op_store::{View, WorkspaceId};
 use crate::repo::{ReadonlyRepo, RepoLoader};
 use crate::settings::UserSettings;
 use crate::working_copy::WorkingCopy;
@@ -156,6 +157,66 @@ impl Workspace {
             &jj_dir,
             WorkspaceId::default(),
         );
+        let repo_loader = repo.loader();
+        let workspace = Workspace::new(workspace_root, working_copy, repo_loader);
+        Ok((workspace, repo))
+    }
+
+    pub fn init_external_hg(
+        user_settings: &UserSettings,
+        workspace_root: PathBuf,
+        hg_repo_path: PathBuf,
+    ) -> Result<(Self, Arc<ReadonlyRepo>), WorkspaceInitError> {
+        let jj_dir = create_jj_dir(&workspace_root)?;
+        let repo_dir = jj_dir.join("repo");
+        std::fs::create_dir(&repo_dir).unwrap();
+        let repo = ReadonlyRepo::init_external_hg(user_settings, repo_dir, hg_repo_path);
+        let (working_copy, repo) = init_working_copy(
+            user_settings,
+            &repo,
+            &workspace_root,
+            &jj_dir,
+            WorkspaceId::default(),
+        );
+        let hg_repo = repo.store().hg_repo().unwrap();
+        let changelog = hg_repo.changelog().unwrap();
+        let mut rev = 0;
+        let mut tx = repo.start_transaction("test");
+        let index_mut = tx.mut_repo().index_mut();
+        let mut commit_ids = vec![];
+        while let Ok(entry) = changelog.entry_for_rev(rev) {
+            let commit_id = CommitId::from_bytes(entry.node().as_bytes());
+            commit_ids.push(commit_id.clone());
+            let change_id = ChangeId::new(
+                commit_id.as_bytes()[4..20]
+                    .iter()
+                    .rev()
+                    .map(|b| b.reverse_bits())
+                    .collect(),
+            );
+            let mut parents = vec![];
+            if let Some(p1) = entry.p1() {
+                parents.push(commit_ids[p1 as usize].clone());
+            }
+            if let Some(p2) = entry.p2() {
+                parents.push(commit_ids[p2 as usize].clone());
+            }
+            index_mut.add_commit_data(commit_id, change_id, parents);
+            rev += 1;
+        }
+        // Create a view with all the commits visible. The commits that are not heads will be
+        // removed when the transaction commits.
+        let view = View {
+            head_ids: commit_ids.into_iter().collect(),
+            public_head_ids: Default::default(),
+            branches: Default::default(),
+            tags: Default::default(),
+            git_refs: Default::default(),
+            git_head: None,
+            checkouts: Default::default()
+        };
+        tx.mut_repo().set_view(view);
+        let repo = tx.commit();
         let repo_loader = repo.loader();
         let workspace = Workspace::new(workspace_root, working_copy, repo_loader);
         Ok((workspace, repo))
