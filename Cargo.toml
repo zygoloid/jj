@@ -17,20 +17,12 @@ categories = ["command-line-utilities", "development-tools"]
 name = "jj"
 path = "src/main.rs"
 
-[[bin]]
-name = "fake-editor"
-path = "testing/fake-editor.rs"
-
-[[bin]]
-name = "fake-diff-editor"
-path = "testing/fake-diff-editor.rs"
-
 [[bench]]
 name = "diff_bench"
 harness = false
 
 [workspace]
-members = ["lib"]
+members = ["lib", "testing"]
 
 [dependencies]
 assert_cmd = "2.0.4"
@@ -63,6 +55,7 @@ test-case = "2.0.2"
 regex = "1.5.5"
 criterion = "0.3.5"
 criterion_bencher_compat = "0.3.4"
+jujutsu-testing = { version = "=0.4.0", path = "testing"}
 predicates = "2.1.1"
 
 [features]
